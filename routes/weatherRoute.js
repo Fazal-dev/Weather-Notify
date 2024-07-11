@@ -39,4 +39,5 @@ weatherRouter.get("/:id/weather/:date", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
 export default weatherRouter;
