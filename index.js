@@ -4,8 +4,6 @@ import "dotenv/config";
 import { dbConnection } from "./db.js";
 import UserRouter from "./routes/userRouter.js";
 import weatherRouter from "./routes/weatherRoute.js";
-import "./cronJob.js";
-// import cron from "node-cron";
 
 const app = express();
 
@@ -21,6 +19,9 @@ try {
 } catch (error) {
   console.error("COULD NOT CONNECT TO DATABASE:", error.message);
 }
+
+import "./cronJob.js";
+
 // routes
 app.use("/api/user", UserRouter);
 app.use("/api/weatherData", weatherRouter);
