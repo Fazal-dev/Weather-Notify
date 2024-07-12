@@ -4,7 +4,6 @@ import "dotenv/config";
 import { dbConnection } from "./db.js";
 import UserRouter from "./routes/userRouter.js";
 import weatherRouter from "./routes/weatherRoute.js";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const app = express();
 
@@ -20,7 +19,7 @@ try {
 } catch (error) {
   console.error("COULD NOT CONNECT TO DATABASE:", error.message);
 }
-
+// sending email using nodemailer
 import "./cronJob.js";
 
 // routes

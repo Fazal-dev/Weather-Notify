@@ -6,6 +6,8 @@ import "dotenv/config";
 import axios from "axios";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
 // Function to fetch weather data
 const fetchWeatherData = async (location) => {
   const url = `http://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${process.env.OPENWEATHERMAP_API_KEY}`;
@@ -22,8 +24,6 @@ const transporter = nodemailer.createTransport({
     pass: process.env.MAILTRAP_PASS,
   },
 });
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 //generate a weather report using Gemini AI
 const generateWeatherReport = async (weatherData) => {
