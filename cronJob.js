@@ -4,6 +4,7 @@ import userModel from "./models/userModel.js";
 import WeatherDataModel from "./models/weatherData.js";
 import "dotenv/config";
 import axios from "axios";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Function to fetch weather data
 const fetchWeatherData = async (location) => {
@@ -21,8 +22,11 @@ const transporter = nodemailer.createTransport({
     pass: process.env.MAILTRAP_PASS,
   },
 });
-const genarateWeatherReport = (weatherData) => {
-  // Extract weather information from the weatherData object
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+//generate a weather report using Gemini AI
+const generateWeatherReport = async (weatherData) => {
   const { name, weather, main, wind, clouds, sys } = weatherData;
   const weatherDescription =
     weather[0]?.description || "No description available";
@@ -36,31 +40,41 @@ const genarateWeatherReport = (weatherData) => {
   const sunrise = new Date(sys.sunrise * 1000).toLocaleTimeString();
   const sunset = new Date(sys.sunset * 1000).toLocaleTimeString();
 
-  return `
-           Weather Report for ${name}:
+  // Construct prompt for Gemini AI
+  const prompt = `
+  Create a detailed and engaging weather report for the following weather data:
+  - Location: ${name}
+  - Weather: ${weatherDescription}
+  - Temperature: ${temperature}°C
+  - Feels Like: ${feelsLike}°C
+  - Min Temperature: ${tempMin}°C
+  - Max Temperature: ${tempMax}°C
+  - Humidity: ${humidity}%
+  - Wind Speed: ${windSpeed} m/s
+  - Cloud Coverage: ${cloudCoverage}%
+  - Sunrise: ${sunrise}
+  - Sunset: ${sunset}
+  
+  Format the report in a user-friendly and informative way.
+  `;
 
-              Weather: ${weatherDescription}
-              Temperature: ${temperature}°C
-              Feels Like: ${feelsLike}°C
-              Min Temperature: ${tempMin}°C
-              Max Temperature: ${tempMax}°C
-              Humidity: ${humidity}%
-              Wind Speed: ${windSpeed} m/s
-              Cloud Coverage: ${cloudCoverage}%
-              Sunrise: ${sunrise}
-              Sunset: ${sunset}
+  // Generate weather report using Gemini AI
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  const report = response.text();
 
-              Have a great day!
-              `;
+  return report;
 };
 
 // Function to send email
 const sendEmail = async (email, weatherData) => {
+  const weatherReport = await generateWeatherReport(weatherData);
   const mailOptions = {
     from: "hi@demomailtrap.com",
     to: email,
     subject: "Weather Report",
-    text: genarateWeatherReport(weatherData),
+    text: weatherReport,
   };
 
   await transporter.sendMail(mailOptions);
