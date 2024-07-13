@@ -27,5 +27,5 @@ app.use("/api/user", UserRouter);
 app.use("/api/weatherData", weatherRouter);
 
 app.get("/", function (req, res) {
-  res.send("hello world");
+  res.send("hello vercel");
 });
