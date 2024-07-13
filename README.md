@@ -56,39 +56,30 @@ Start the application:
 
 API Endpoints
 
-    Create User:
-
+Create User:
 
         POST /api/user
         Request Body: { "email": "user@example.com", "location": "City Name" }
 
-    Update User Location:
-
+Update User Location:
 
         PATCH /api/user/:id/location
         Request Body: { "location": "New City Name" }
 
-    Get Weather Data for User:
+Get Weather Data for User:
 
         GET /api/weatherData/:id/weather/:date
         URL Params: id (User ID), date (YYYY-MM-DD format)
 
 Functionality
-Fetch Weather Data:
 
-Fetches weather data from the OpenWeatherMap API based on the user's location.
+    Fetch Weather Data:Fetches weather data from the OpenWeatherMap API based on the user's location.
 
-Generate Weather Report:
+    Generate Weather Report: Generates a detailed weather report using Google Generative AI.
 
-Generates a detailed weather report using Google Generative AI.
+    Send Email:Sends the generated weather report to the user's email.
 
-Send Email:
-
-Sends the generated weather report to the user's email.
-
-Cron Job:
-Schedules a task to run every 3 hours, checking for new weather data and sending email notifications to users.
+    Cron Job:Schedules a task to run every 3 hours, checking for new weather data and sending email notifications to users.
 
 Contact
-
-    For any inquiries or questions, please contact Fasal Mohamed at mfazal404@gmail.com.
+For any inquiries or questions.please contact Fasal Mohamed at mfazal404@gmail.com.
