@@ -82,7 +82,7 @@ const sendEmail = async (email, weatherData) => {
 
 // Schedule the email to be sent every 30 seconds
 cron.schedule("0 */3 * * *", async () => {
-  console.log("Running a task every 30 seconds");
+  console.log("Running a task every 3 hours");
   try {
     const users = await userModel.find();
     for (const user of users) {
