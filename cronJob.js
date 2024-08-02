@@ -15,23 +15,27 @@ const fetchWeatherData = async (location) => {
   return response.data;
 };
 
-//generate a weather report using Gemini AI
-const generateWeatherReport = async (weatherData) => {
-  const { name, weather, main, wind, clouds, sys } = weatherData;
-  const weatherDescription =
-    weather[0]?.description || "No description available";
-  const temperature = (main.temp - 273.15).toFixed(1);
-  const feelsLike = (main.feels_like - 273.15).toFixed(1);
-  const tempMin = (main.temp_min - 273.15).toFixed(1);
-  const tempMax = (main.temp_max - 273.15).toFixed(1);
-  const humidity = main.humidity;
-  const windSpeed = wind.speed;
-  const cloudCoverage = clouds.all;
-  const sunrise = new Date(sys.sunrise * 1000).toLocaleTimeString();
-  const sunset = new Date(sys.sunset * 1000).toLocaleTimeString();
+// Function to format temperature from Kelvin to Celsius
+const formatTemperature = (kelvin) => (kelvin - 273.15).toFixed(1);
 
-  // Construct prompt for Gemini AI
-  const prompt = `
+// Function to convert Unix timestamp to human-readable time
+const formatTime = (timestamp) =>
+  new Date(timestamp * 1000).toLocaleTimeString();
+
+// Function to generate a prompt for Gemini AI
+const createPrompt = (
+  name,
+  weatherDescription,
+  temperature,
+  feelsLike,
+  tempMin,
+  tempMax,
+  humidity,
+  windSpeed,
+  cloudCoverage,
+  sunrise,
+  sunset
+) => `
   Create a detailed and engaging weather report for the following weather data:
   - Location: ${name}
   - Weather: ${weatherDescription}
@@ -44,11 +48,39 @@ const generateWeatherReport = async (weatherData) => {
   - Cloud Coverage: ${cloudCoverage}%
   - Sunrise: ${sunrise}
   - Sunset: ${sunset}
-  
-  Format the report in a user-friendly and informative way.
-  `;
 
-  // Generate weather report using Gemini AI
+  Format the report in a user-friendly and informative way.
+`;
+
+// Function to generate a weather report using Gemini AI
+const generateWeatherReport = async (weatherData) => {
+  const { name, weather, main, wind, clouds, sys } = weatherData;
+  const weatherDescription =
+    weather[0]?.description || "No description available";
+  const temperature = formatTemperature(main.temp);
+  const feelsLike = formatTemperature(main.feels_like);
+  const tempMin = formatTemperature(main.temp_min);
+  const tempMax = formatTemperature(main.temp_max);
+  const humidity = main.humidity;
+  const windSpeed = wind.speed;
+  const cloudCoverage = clouds.all;
+  const sunrise = formatTime(sys.sunrise);
+  const sunset = formatTime(sys.sunset);
+
+  const prompt = createPrompt(
+    name,
+    weatherDescription,
+    temperature,
+    feelsLike,
+    tempMin,
+    tempMax,
+    humidity,
+    windSpeed,
+    cloudCoverage,
+    sunrise,
+    sunset
+  );
+
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   const result = await model.generateContent(prompt);
   const response = await result.response;
@@ -81,41 +113,60 @@ const sendEmail = async (email, weatherData) => {
   await transporter.sendMail(mailOptions);
 };
 
-// Schedule the email to be sent every 3 hours
-cron.schedule("*/30 * * * * *", async () => {
-  console.log("Running a task every 30 second");
+// Function to get or fetch weather data
+const getOrFetchWeatherData = async (userId, location) => {
+  try {
+    // get most recent weather data
+    let weatherData = await WeatherDataModel.findOne({ userId }).sort({
+      createdAt: -1,
+    });
+
+    if (!weatherData) {
+      // fetch new weather data
+      weatherData = await fetchWeatherData(location);
+      const newWeatherData = new WeatherDataModel({
+        userId,
+        data: weatherData,
+      });
+      await newWeatherData.save();
+    } else {
+      weatherData = weatherData.data;
+    }
+
+    return weatherData;
+  } catch (error) {
+    console.error(`Error fetching weather data for user ${userId}:`, error);
+    throw error;
+  }
+};
+
+// Function to process each user
+const processUser = async (user) => {
+  if (!user.location) {
+    console.error(`User ${user._id} does not have a location set.`);
+    return;
+  }
+
+  try {
+    const weatherData = await getOrFetchWeatherData(user._id, user.location);
+    await sendEmail(user.email, weatherData);
+  } catch (error) {
+    console.error(`Error processing user ${user._id}:`, error);
+  }
+};
+
+// Function to run scheduled task
+const runScheduledTask = async () => {
+  console.log("Running a task every 30 seconds");
   try {
     const users = await userModel.find();
     for (const user of users) {
-      if (!user.location) {
-        console.error(`User ${user._id} does not have a location set.`);
-        continue;
-      }
-      // Check if weather data already exists
-      let weatherData = await WeatherDataModel.findOne({
-        userId: user._id,
-      }).sort({
-        createdAt: -1,
-      });
-
-      if (!weatherData) {
-        // Fetch new weather data
-        weatherData = await fetchWeatherData(user.location);
-
-        // Save new weather data to the database
-        const newWeatherData = new WeatherDataModel({
-          userId: user._id,
-          data: weatherData,
-        });
-        await newWeatherData.save();
-      } else {
-        weatherData = weatherData.data;
-      }
-
-      // Send email with weather data
-      await sendEmail(user.email, weatherData);
+      await processUser(user);
     }
   } catch (error) {
-    console.error("Error during scheduled task", error);
+    console.error("Error during scheduled task:", error);
   }
-});
+};
+
+// Schedule the email to be sent every 30 seconds
+cron.schedule("*/30 * * * * *", runScheduledTask);
