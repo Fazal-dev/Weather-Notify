@@ -15,16 +15,6 @@ const fetchWeatherData = async (location) => {
   return response.data;
 };
 
-// Create a transporter object
-const transporter = nodemailer.createTransport({
-  host: process.env.MAILTRAP_HOST,
-  port: process.env.MAILTRAP_PORT,
-  auth: {
-    user: process.env.MAILTRAP_USER,
-    pass: process.env.MAILTRAP_PASS,
-  },
-});
-
 //generate a weather report using Gemini AI
 const generateWeatherReport = async (weatherData) => {
   const { name, weather, main, wind, clouds, sys } = weatherData;
@@ -67,9 +57,20 @@ const generateWeatherReport = async (weatherData) => {
   return report;
 };
 
+// Create a transporter object
+const transporter = nodemailer.createTransport({
+  host: process.env.MAILTRAP_HOST,
+  port: process.env.MAILTRAP_PORT,
+  auth: {
+    user: process.env.MAILTRAP_USER,
+    pass: process.env.MAILTRAP_PASS,
+  },
+});
 // Function to send email
 const sendEmail = async (email, weatherData) => {
+  // genarate weather report
   const weatherReport = await generateWeatherReport(weatherData);
+
   const mailOptions = {
     from: "hi@demomailtrap.com",
     to: email,
@@ -80,12 +81,16 @@ const sendEmail = async (email, weatherData) => {
   await transporter.sendMail(mailOptions);
 };
 
-// Schedule the email to be sent every 30 seconds
-cron.schedule("0 */3 * * *", async () => {
-  console.log("Running a task every 3 hours");
+// Schedule the email to be sent every 3 hours
+cron.schedule("*/30 * * * * *", async () => {
+  console.log("Running a task every 30 second");
   try {
     const users = await userModel.find();
     for (const user of users) {
+      if (!user.location) {
+        console.error(`User ${user._id} does not have a location set.`);
+        continue;
+      }
       // Check if weather data already exists
       let weatherData = await WeatherDataModel.findOne({
         userId: user._id,

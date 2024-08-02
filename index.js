@@ -19,12 +19,13 @@ try {
 } catch (error) {
   console.error("COULD NOT CONNECT TO DATABASE:", error.message);
 }
-// sending email using nodemailer
-import "./cronJob.js";
 
 // routes
 app.use("/api/user", UserRouter);
 app.use("/api/weatherData", weatherRouter);
+
+// sending email using nodemailer
+import "./cronJob.js";
 
 app.get("/", function (req, res) {
   res.send("hello vercel");
